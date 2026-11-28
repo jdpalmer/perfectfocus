@@ -1,4 +1,4 @@
-// json/util.mc — buffers, UTF-8, number scan (package-private).
+// json/util.mc — buffers, number scan (package-private).
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -18,98 +18,6 @@ static bool json_byte_digit(char c) {
 static bool json_is_number_char(char c) {
 	return json_byte_digit(c) || c == '.' || c == '+' || c == '-' ||
 		c == 'e' || c == 'E';
-}
-
-static size_t json_utf8_encode(uint32_t codepoint, char *out_raw) {
-	char[..] out = ranged(out_raw, 4);
-	if ((codepoint >= 0xD800 && codepoint <= 0xDFFF) || codepoint > 0x10FFFF) {
-		codepoint = 0xFFFD;
-	}
-	if (codepoint < 0x80) {
-		out[0] = (char)codepoint;
-		return 1;
-	}
-	if (codepoint < 0x800) {
-		out[0] = (char)(0xC0 | (codepoint >> 6));
-		out[1] = (char)(0x80 | (codepoint & 0x3F));
-		return 2;
-	}
-	if (codepoint < 0x10000) {
-		out[0] = (char)(0xE0 | (codepoint >> 12));
-		out[1] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
-		out[2] = (char)(0x80 | (codepoint & 0x3F));
-		return 3;
-	}
-	out[0] = (char)(0xF0 | (codepoint >> 18));
-	out[1] = (char)(0x80 | ((codepoint >> 12) & 0x3F));
-	out[2] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
-	out[3] = (char)(0x80 | (codepoint & 0x3F));
-	return 4;
-}
-
-static bool json_utf8_cont(uint32_t c) {
-	return (c & 0xC0) == 0x80;
-}
-
-static size_t json_utf8_decode_strict(const char *text, size_t len, uint32_t *codepoint) {
-	const char[..] bytes = ranged(text, len);
-	size_t i = 1;
-
-	if (len == 0 || codepoint == NULL) {
-		return 0;
-	}
-	uint32_t b0 = bytes[0];
-	if (b0 < 0x80) {
-		*codepoint = b0;
-		return 1;
-	}
-	if (b0 < 0xC2 || b0 > 0xF4) {
-		return 0;
-	}
-	uint32_t value = b0 & 0x1F;
-	uint32_t min_value = 0x80;
-	size_t need = 2;
-	if (b0 >= 0xE0 && b0 < 0xF0) {
-		value = b0 & 0x0F;
-		min_value = 0x800;
-		need = 3;
-	} else if (b0 >= 0xF0) {
-		value = b0 & 0x07;
-		min_value = 0x10000;
-		need = 4;
-	}
-	if (len < need) {
-		return 0;
-	}
-	for (; i < need; i++) {
-		uint32_t bi = bytes[i];
-		if (!json_utf8_cont(bi)) {
-			return 0;
-		}
-		value = (value << 6) | (bi & 0x3F);
-	}
-	if (value < min_value) {
-		return 0;
-	}
-	if ((value >= 0xD800 && value <= 0xDFFF) || value > 0x10FFFF) {
-		return 0;
-	}
-	*codepoint = value;
-	return need;
-}
-
-static bool json_utf8_validate(const char *text, size_t len) {
-	size_t offset = 0;
-	uint32_t codepoint = 0;
-
-	while (offset < len) {
-		size_t used = json_utf8_decode_strict(text + offset, len - offset, &codepoint);
-		if (used == 0) {
-			return false;
-		}
-		offset = offset + used;
-	}
-	return true;
 }
 
 /* JSON-style double scan (jem.c util_scan scan_double); no __builtin overflow. */

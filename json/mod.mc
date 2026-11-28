@@ -1,5 +1,6 @@
 // json — DOM JSON parser/serializer (pure %C port of jem.c util_json).
 import "str";
+import "utf8";
 
 #include <stdbool.h>
 #include <stddef.h>

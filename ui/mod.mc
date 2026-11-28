@@ -4,6 +4,7 @@ import "screen";
 import "style";
 import "term";
 import "str";
+import "utf8";
 
 #include <stdio.h>
 #include <string.h>
@@ -70,7 +71,7 @@ static void put_clipped(int row, int col, int width, const char[..] text, TextSt
 		return;
 	}
 	while (i < len(text) && filled < width) {
-		auto (r, sz) = utf8_decode_rune(text, i);
+		auto (r, sz) = text.decode_rune(i);
 		int w = 0;
 		if (sz == 0) {
 			break;
@@ -131,7 +132,7 @@ static void put_mnemonic(int row, int col, int width, const char[..] text, char 
 		int dcol = 0;
 		size_t at = 0;
 		while (at < len(text)) {
-			auto (r, sz) = utf8_decode_rune(text, at);
+			auto (r, sz) = text.decode_rune(at);
 			int w = 0;
 			if (sz == 0) {
 				break;
@@ -154,7 +155,7 @@ static void put_mnemonic(int row, int col, int width, const char[..] text, char 
 		}
 	}
 	while (i < len(text) && filled < width) {
-		auto (r, sz) = utf8_decode_rune(text, i);
+		auto (r, sz) = text.decode_rune(i);
 		int w = 0;
 		TextStyle use = st;
 		if (sz == 0) {
@@ -314,7 +315,7 @@ static void paint_task_row(int screen_row, int c, int w_status, int w_cc, int w_
 		int filled = 0;
 		size_t i = 0;
 		while (i < len(t.title) && filled < w_task) {
-			auto (r, sz) = utf8_decode_rune(t.title, i);
+			auto (r, sz) = t.title.decode_rune(i);
 			int before = filled;
 			if (sz == 0) {
 				break;
@@ -335,7 +336,7 @@ static void paint_task_row(int screen_row, int c, int w_status, int w_cc, int w_
 		}
 		i = 0;
 		while (i < len(t.tags) && filled < w_task) {
-			auto (r, sz) = utf8_decode_rune(t.tags, i);
+			auto (r, sz) = t.tags.decode_rune(i);
 			int before = filled;
 			if (sz == 0) {
 				break;
@@ -633,8 +634,8 @@ void ui_paint(UiState* ui) {
 	if (ui.editing) {
 		int cursor_row = screen_rows() - 1;
 		int cursor_col = 1;
-		cursor_col += utf8_prefix_cols(ranged(ui.prompt, strlen(ui.prompt)), strlen(ui.prompt));
-		cursor_col += utf8_prefix_cols(ranged(ui.input, ui.input_len), ui.input_cursor);
+		cursor_col += ranged(ui.prompt, strlen(ui.prompt)).prefix_cols(strlen(ui.prompt));
+		cursor_col += ranged(ui.input, ui.input_len).prefix_cols(ui.input_cursor);
 		if (cursor_col >= cols) {
 			cursor_col = cols - 1;
 		}
@@ -715,13 +716,13 @@ bool ui_edit_handle_key(UiState* ui, uint32_t key) {
 		const char[..] line = ranged(ui.input, ui.input_len);
 		if (key == (uint32_t)TermKeyLeft || key_is_ctl(key, 'B')) {
 			if (ui.input_cursor > 0) {
-				ui.input_cursor = (int)utf8_prev_offset(line, ui.input_cursor);
+				ui.input_cursor = (int)line.prev_offset(ui.input_cursor);
 			}
 			return false;
 		}
 		if (key == (uint32_t)TermKeyRight || key_is_ctl(key, 'F')) {
 			if (ui.input_cursor < ui.input_len) {
-				ui.input_cursor = (int)utf8_next_offset(line, ui.input_cursor);
+				ui.input_cursor = (int)line.next_offset(ui.input_cursor);
 			}
 			return false;
 		}
@@ -739,7 +740,7 @@ bool ui_edit_handle_key(UiState* ui, uint32_t key) {
 		/* backspace one rune */
 		if (ui.input_cursor > 0) {
 			const char[..] line = ranged(ui.input, ui.input_len);
-			int start = (int)utf8_prev_offset(line, ui.input_cursor);
+			int start = (int)line.prev_offset(ui.input_cursor);
 			int del = ui.input_cursor - start;
 			memmove(ui.input + start, ui.input + ui.input_cursor, ui.input_len - ui.input_cursor + 1);
 			ui.input_len -= del;
@@ -751,7 +752,7 @@ bool ui_edit_handle_key(UiState* ui, uint32_t key) {
 	if (key == (uint32_t)TermKeyDelete || key_is_ctl(key, 'D')) {
 		if (ui.input_cursor < ui.input_len) {
 			const char[..] line = ranged(ui.input, ui.input_len);
-			int end = (int)utf8_next_offset(line, ui.input_cursor);
+			int end = (int)line.next_offset(ui.input_cursor);
 			int del = end - ui.input_cursor;
 			memmove(ui.input + ui.input_cursor, ui.input + end, ui.input_len - end + 1);
 			ui.input_len -= del;

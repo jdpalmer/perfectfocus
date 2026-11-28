@@ -65,7 +65,7 @@ static bool json_string_equals(const char[..] string, const char *text, size_t n
 	if (string == NULL && nbytes != 0) {
 		return NULL;
 	}
-	if (!json_utf8_validate(string, nbytes)) {
+	if (!ranged(string, nbytes).is_utf8()) {
 		return NULL;
 	}
 	JsonValue *value = json_value_alloc(JSON_STRING);

@@ -88,7 +88,11 @@ static bool json_append_escaped_string(char[..] *buffer, const char[..] value) {
 				break;
 			}
 			available = (nbytes - i) >= 4 ? 4 : (nbytes - i);
-			used = json_utf8_decode_strict(ptr(value) + i, available, &codepoint);
+			{
+				auto (cp, nused) = ranged(ptr(value) + i, available).decode_strict(0);
+				codepoint = cp;
+				used = nused;
+			}
 			if (used == 0) {
 				return false;
 			}

@@ -145,7 +145,7 @@ static bool json_parse_hex4(JsonParser *parser, uint16_t *value) {
 
 static bool json_append_utf8(char[..] *buffer, uint32_t codepoint) {
 	char bytes[4] = {0};
-	size_t nbytes = json_utf8_encode(codepoint, bytes);
+	size_t nbytes = utf8_encode_rune(codepoint, ranged(bytes, 4));
 	return json_buffer_append_bytes(buffer, bytes, nbytes);
 }
 
@@ -186,7 +186,11 @@ static bool json_parse_string_into(JsonParser *parser, char[..] *buffer) {
 			char_start = parser.cursor - 1;
 			remaining = (size_t)(parser.end - char_start);
 			available = remaining >= 4 ? 4 : remaining;
-			used = json_utf8_decode_strict(char_start, available, &codepoint);
+			{
+				auto (cp, nused) = ranged(char_start, available).decode_strict(0);
+				codepoint = cp;
+				used = nused;
+			}
 			if (used == 0) {
 				json_set_error(parser, "Invalid UTF-8 in string");
 				return false;
