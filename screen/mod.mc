@@ -293,24 +293,9 @@ static void screen_write_span(int row, int from, int to) {
 			continue;
 		}
 		ch = c.ch;
-		if (ch < 128) {
-			tmp[0] = (char)ch;
-			sz = 1;
-		} else if (ch < 0x800) {
-			tmp[0] = (char)(0xC0 | (ch >> 6));
-			tmp[1] = (char)(0x80 | (ch & 0x3F));
-			sz = 2;
-		} else if (ch < 0x10000) {
-			tmp[0] = (char)(0xE0 | (ch >> 12));
-			tmp[1] = (char)(0x80 | ((ch >> 6)& 0x3F));
-			tmp[2] = (char)(0x80 | (ch & 0x3F));
-			sz = 3;
-		} else {
-			tmp[0] = (char)(0xF0 | (ch >> 18));
-			tmp[1] = (char)(0x80 | ((ch >> 12)& 0x3F));
-			tmp[2] = (char)(0x80 | ((ch >> 6)& 0x3F));
-			tmp[3] = (char)(0x80 | (ch & 0x3F));
-			sz = 4;
+		sz = (int)utf8_encode_rune(ch, ranged(tmp, 4));
+		if (sz == 0) {
+			continue;
 		}
 		if (out_len + sz > (int) sizeof(out)) {
 			term_write(out, out_len);
