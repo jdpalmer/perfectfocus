@@ -4,6 +4,7 @@ import "fs";
 import "tty";
 import "os";
 import "str";
+import "utf8";
 
 #include <stddef.h>
 #include <stdint.h>
@@ -1180,6 +1181,7 @@ static uint32_t term_decode_utf8(char first) {
 	char buf[4] = {0};
 	int need = 1;
 	int i = 1;
+
 	buf[0] = first;
 	if ((first & 0xE0) == 0xC0) {
 		need = 2;
@@ -1197,22 +1199,11 @@ static uint32_t term_decode_utf8(char first) {
 		}
 		buf[i] = bx;
 	}
-	if (need == 2) {
-		uint32_t r = (uint32_t)(first & 0x1F) << 6;
-		r |= (uint32_t)(buf[1] & 0x3F);
+	{
+		auto (r, sz) = ranged(buf, (size_t)need).decode_rune(0);
+		(void)sz;
 		return r;
 	}
-	if (need == 3) {
-		uint32_t r = (uint32_t)(first & 0x0F) << 12;
-		r |= (uint32_t)(buf[1] & 0x3F) << 6;
-		r |= (uint32_t)(buf[2] & 0x3F);
-		return r;
-	}
-	uint32_t r = (uint32_t)(first & 0x07) << 18;
-	r |= (uint32_t)(buf[1] & 0x3F) << 12;
-	r |= (uint32_t)(buf[2] & 0x3F) << 6;
-	r |= (uint32_t)(buf[3] & 0x3F);
-	return r;
 }
 
 static (uint32_t, bool) term_read_key_impl(bool rewind_on_partial) {
