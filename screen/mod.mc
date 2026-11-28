@@ -165,7 +165,7 @@ void screen_put_str(int row, int col, const char[..] text, TextStyle style) {
 		if (r == 0) {
 			break;
 		}
-		w = rune_display_width(r);
+		w = utf8_rune_width(r);
 		if (w <= 0) {
 			w = 1;
 		}

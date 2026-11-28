@@ -76,7 +76,7 @@ static void put_clipped(int row, int col, int width, const char[..] text, TextSt
 		if (sz == 0) {
 			break;
 		}
-		w = rune_display_width(r);
+		w = utf8_rune_width(r);
 		if (w <= 0) {
 			w = 1;
 		}
@@ -98,7 +98,7 @@ static void put_clipped(int row, int col, int width, const char[..] text, TextSt
 
 /* Paint one rune at display column; pads wide glyphs. Advances *filled. */
 static void put_rune_cols(int row, int col, int width, int* filled, uint32_t r, TextStyle st) {
-	int w = rune_display_width(r);
+	int w = utf8_rune_width(r);
 	if (filled == NULL || *filled >= width) {
 		return;
 	}
@@ -137,7 +137,7 @@ static void put_mnemonic(int row, int col, int width, const char[..] text, char 
 			if (sz == 0) {
 				break;
 			}
-			w = rune_display_width(r);
+			w = utf8_rune_width(r);
 			if (w <= 0) {
 				w = 1;
 			}
@@ -161,7 +161,7 @@ static void put_mnemonic(int row, int col, int width, const char[..] text, char 
 		if (sz == 0) {
 			break;
 		}
-		w = rune_display_width(r);
+		w = utf8_rune_width(r);
 		if (w <= 0) {
 			w = 1;
 		}
