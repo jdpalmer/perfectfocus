@@ -145,8 +145,8 @@ static void crash_cleanup() {
 	term_close();
 }
 
-static void app_term_on_paste(char *data, size_t n) {
-	event_enqueue(event_paste(data, n));
+static void app_term_on_paste(char[..] data) {
+	event_enqueue(event_paste(ptr(data), len(data)));
 }
 
 static void app_term_on_resize() {
