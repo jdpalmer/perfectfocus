@@ -1,7 +1,7 @@
 // event — inbound editor event bus (ring queue).
 //
-// Tagged events replace Go interfaces. Producers call event_enqueue; the
-// runtime drains via event_try_dequeue on the main loop tick.
+// Tagged events for keys, resize, paste, mouse, and commands. Producers call
+// event_enqueue; the app drains via event_try_dequeue on each main-loop tick.
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>

@@ -145,6 +145,14 @@ static void crash_cleanup() {
 	term_close();
 }
 
+static void app_term_on_paste(char *data, size_t n) {
+	event_enqueue(event_paste(data, n));
+}
+
+static void app_term_on_resize() {
+	event_enqueue(event_resize());
+}
+
 static void begin_edit(AppEditKind kind, const char[..] prompt, const char[..] initial) {
 	g_app.edit_kind = kind;
 	ui_begin_edit(&g_app.ui, prompt, initial);
@@ -428,25 +436,25 @@ static void handle_normal_key(uint32_t key) {
 		g_app.running = false;
 		return;
 	}
-	if (key == (uint32_t)TermKeyUp || key == 'k' || key == ((uint32_t)TermCTL | (uint32_t)'P')) {
+	if (key == TermKeyUp || key == 'k' || key == (TermCTL | (uint32_t)'P')) {
 		if (g_app.ui.selected > 0) {
 			g_app.ui.selected--;
 		}
 		return;
 	}
-	if (key == (uint32_t)TermKeyDown || key == 'j' || key == ((uint32_t)TermCTL | (uint32_t)'N')) {
+	if (key == TermKeyDown || key == 'j' || key == (TermCTL | (uint32_t)'N')) {
 		if (g_app.ui.selected + 1 < g_app.visible_count) {
 			g_app.ui.selected++;
 		}
 		return;
 	}
 	/* jem: S-Up / S-Down page; also PageUp/Down and C-v */
-	if (key == ((uint32_t)TermSHIFT | (uint32_t)TermKeyUp) || key == (uint32_t)TermKeyPageUp) {
+	if (key == (TermSHIFT | TermKeyUp) || key == TermKeyPageUp) {
 		g_app.ui.selected -= ui_page_rows();
 		ui_clamp(&g_app.ui);
 		return;
 	}
-	if (key == ((uint32_t)TermSHIFT | (uint32_t)TermKeyDown) || key == (uint32_t)TermKeyPageDown || key == ((uint32_t)TermCTL | (uint32_t)'V')) {
+	if (key == (TermSHIFT | TermKeyDown) || key == TermKeyPageDown || key == (TermCTL | (uint32_t)'V')) {
 		g_app.ui.selected += ui_page_rows();
 		ui_clamp(&g_app.ui);
 		return;
@@ -557,7 +565,7 @@ static void handle_normal_key(uint32_t key) {
 		begin_edit(EditKillConfirm, "are you sure? y/n ", "");
 		return;
 	}
-	if (key == 't' || key == (uint32_t)TermKeyEnter) {
+	if (key == 't' || key == TermKeyEnter) {
 		char joined[UiInputCap] = { 0 };
 		if (!model_format_task_line(t.title, t.tags, t.cc, ranged(joined, sizeof(joined)))) {
 			begin_edit(EditTitle, "title (@attn #tags): ", t.title);
@@ -748,7 +756,7 @@ static void handle_event(Event* ev) {
 	if (ev.kind == EventKey) {
 		uint32_t key = ev.key_code;
 		/* jem: C-l → cmd_refresh / display_invalidate */
-		if (key == ((uint32_t)TermCTL | (uint32_t)'L') || key == (uint32_t)('L' - '@')) {
+		if (key == (TermCTL | (uint32_t)'L') || key == (uint32_t)('L' - '@')) {
 			screen_invalidate();
 			return;
 		}
@@ -758,22 +766,22 @@ static void handle_event(Event* ev) {
 				if (key == 'y' || key == 'Y') {
 					cancel_edit();
 					do_kill(idx);
-				} else if (key == 'n' || key == 'N' || key == 0x1B || key == ((uint32_t)TermCTL | (uint32_t)'G') || key == (uint32_t)('G' - '@')) {
+				} else if (key == 'n' || key == 'N' || key == 0x1B || key == (TermCTL | (uint32_t)'G') || key == (uint32_t)('G' - '@')) {
 					cancel_edit();
 					ui_set_status(&g_app.ui, "cancelled");
 				}
 				/* ignore other keys until y/n */
 				return;
 			}
-			if (g_app.edit_kind == EditCc && (key == '\t' || key == (uint32_t)TermKeyTab)) {
+			if (g_app.edit_kind == EditCc && (key == '\t' || key == TermKeyTab)) {
 				complete_attn_token();
 				return;
 			}
-			if (g_app.edit_kind == EditFilterCc && (key == '\t' || key == (uint32_t)TermKeyTab)) {
+			if (g_app.edit_kind == EditFilterCc && (key == '\t' || key == TermKeyTab)) {
 				complete_focus_token();
 				return;
 			}
-			if ((g_app.edit_kind == EditTitle || g_app.edit_kind == EditNewTitle) && (key == '\t' || key == (uint32_t)TermKeyTab)) {
+			if ((g_app.edit_kind == EditTitle || g_app.edit_kind == EditNewTitle) && (key == '\t' || key == TermKeyTab)) {
 				complete_task_line_token();
 				return;
 			}
@@ -1085,9 +1093,20 @@ int app_run(const char[..][..] args) {
 	note_db_mtime();
 	refresh_visible();
 	crash_init(crash_cleanup);
-	if (!term_open()) {
-		fprintf(stderr, "modfocus: term_open failed (need a TTY)\n");
-		return 1;
+	{
+		TermConfig cfg = { 0 };
+		cstr_write(cfg.prog, "modfocus");
+		cstr_write(cfg.title, "ModFocus");
+		cfg.require_kitty = false;
+		cfg.mouse = false;
+		cfg.allow_non_tty = false;
+		cfg.reserve_bottom = 0;
+		cfg.on_paste = app_term_on_paste;
+		cfg.on_resize = app_term_on_resize;
+		if (!term_open(cfg)) {
+			fprintf(stderr, "modfocus: term_open failed (need a TTY)\n");
+			return 1;
+		}
 	}
 	defer term_close();
 	screen_init();

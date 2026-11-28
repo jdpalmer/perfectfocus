@@ -683,7 +683,7 @@ static void edit_clamp_cursor(UiState* ui) {
 }
 
 static bool key_is_ctl(uint32_t key, char letter) {
-	uint32_t want = (uint32_t)TermCTL | (uint32_t)letter;
+	uint32_t want = TermCTL | (uint32_t)letter;
 	if (key == want) {
 		return true;
 	}
@@ -701,7 +701,7 @@ bool ui_edit_handle_key(UiState* ui, uint32_t key) {
 	if (ui == NULL || !ui.editing) {
 		return false;
 	}
-	if (key == (uint32_t)TermKeyEnter || key == '\r' || key == '\n' || key_is_ctl(key, 'M') || key_is_ctl(key, 'J')) {
+	if (key == TermKeyEnter || key == '\r' || key == '\n' || key_is_ctl(key, 'M') || key_is_ctl(key, 'J')) {
 		ui.edit_cancelled = false;
 		return true;
 		/* accept */
@@ -714,24 +714,24 @@ bool ui_edit_handle_key(UiState* ui, uint32_t key) {
 	/* Motion — jem/emacs style, by UTF-8 rune */
 	{
 		const char[..] line = ranged(ui.input, ui.input_len);
-		if (key == (uint32_t)TermKeyLeft || key_is_ctl(key, 'B')) {
+		if (key == TermKeyLeft || key_is_ctl(key, 'B')) {
 			if (ui.input_cursor > 0) {
 				ui.input_cursor = (int)line.prev_offset(ui.input_cursor);
 			}
 			return false;
 		}
-		if (key == (uint32_t)TermKeyRight || key_is_ctl(key, 'F')) {
+		if (key == TermKeyRight || key_is_ctl(key, 'F')) {
 			if (ui.input_cursor < ui.input_len) {
 				ui.input_cursor = (int)line.next_offset(ui.input_cursor);
 			}
 			return false;
 		}
 	}
-	if (key == (uint32_t)TermKeyHome || key_is_ctl(key, 'A')) {
+	if (key == TermKeyHome || key_is_ctl(key, 'A')) {
 		ui.input_cursor = 0;
 		return false;
 	}
-	if (key == (uint32_t)TermKeyEnd || key_is_ctl(key, 'E')) {
+	if (key == TermKeyEnd || key_is_ctl(key, 'E')) {
 		ui.input_cursor = ui.input_len;
 		return false;
 	}
@@ -749,7 +749,7 @@ bool ui_edit_handle_key(UiState* ui, uint32_t key) {
 		}
 		return false;
 	}
-	if (key == (uint32_t)TermKeyDelete || key_is_ctl(key, 'D')) {
+	if (key == TermKeyDelete || key_is_ctl(key, 'D')) {
 		if (ui.input_cursor < ui.input_len) {
 			const char[..] line = ranged(ui.input, ui.input_len);
 			int end = (int)line.next_offset(ui.input_cursor);
